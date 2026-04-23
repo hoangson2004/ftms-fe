@@ -1,0 +1,16 @@
+.ant-app,
+.ant-layout {
+  min-height: 100vh;
+}
+
+.ant-layout {
+  background: transparent;
+}
+
+.ant-menu {
+  border-inline-end: 0 !important;
+}
+
+.ant-card {
+  box-shadow: 0 18px 50px rgba(8, 19, 13, 0.08);
+}
