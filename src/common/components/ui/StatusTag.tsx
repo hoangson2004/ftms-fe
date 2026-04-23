@@ -1,15 +1,19 @@
 import { Tag } from 'antd'
 
 type StatusTagProps = {
-  status: 'active' | 'inactive' | 'pending'
+  status?: string | null
 }
 
-const colorMap: Record<StatusTagProps['status'], string> = {
+const colorMap: Record<string, string> = {
   active: 'green',
   inactive: 'default',
   pending: 'gold',
+  deleted: 'red',
+  revoked: 'volcano',
 }
 
 export function StatusTag({ status }: StatusTagProps) {
-  return <Tag color={colorMap[status]}>{status.toUpperCase()}</Tag>
+  const normalized = String(status ?? 'unknown').toLowerCase()
+
+  return <Tag color={colorMap[normalized] ?? 'blue'}>{normalized.toUpperCase()}</Tag>
 }

@@ -1,7 +1,10 @@
-import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd'
-import { useNavigate } from 'react-router-dom'
+import { App, Alert, Button, Card, Form, Input, Space, Typography } from 'antd'
+import { useMutation } from '@tanstack/react-query'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/store'
+import { getErrorMessage } from '@/common/lib/api'
 import { DEMO_CREDENTIALS } from '@/common/constants/app'
+import { getCurrentUser, login } from '@/features/auth/api/authApi'
 
 type LoginFormValues = {
   email: string
@@ -10,26 +13,43 @@ type LoginFormValues = {
 
 export function LoginPage() {
   const [form] = Form.useForm<LoginFormValues>()
+  const { message } = App.useApp()
   const navigate = useNavigate()
+  const location = useLocation()
   const signIn = useAuthStore((state) => state.signIn)
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/'
+  const loginMutation = useMutation({
+    mutationFn: async (values: LoginFormValues) => {
+      const result = await login(values)
+      const user = result.user ?? (await getCurrentUser())
 
-  const handleSubmit = (values: LoginFormValues) => {
-    if (
-      values.email !== DEMO_CREDENTIALS.email ||
-      values.password !== DEMO_CREDENTIALS.password
-    ) {
+      signIn({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        tokenType: result.tokenType,
+        expiresInMs: result.expiresInMs,
+        refreshExpiresInMs: result.refreshExpiresInMs,
+        user,
+      })
+    },
+    onSuccess: () => {
+      navigate(from, { replace: true })
+    },
+    onError: (error) => {
+      const messageText = getErrorMessage(error)
+
       form.setFields([
         {
           name: 'password',
-          errors: ['Sai tài khoản demo. Dùng đúng credential được ghi bên dưới.'],
+          errors: [messageText],
         },
       ])
+      message.error(messageText)
+    },
+  })
 
-      return
-    }
-
-    signIn()
-    navigate('/')
+  const handleSubmit = (values: LoginFormValues) => {
+    loginMutation.mutate(values)
   }
 
   return (
@@ -44,7 +64,7 @@ export function LoginPage() {
             Sign in
           </Typography.Title>
           <Typography.Text type="secondary">
-            Demo auth đã được khóa cố định để bạn test flow đăng nhập.
+            Login now calls the backend auth API directly.
           </Typography.Text>
         </div>
 
@@ -76,7 +96,7 @@ export function LoginPage() {
             name="email"
             rules={[{ required: true, message: 'Nhập email demo.' }]}
           >
-            <Input placeholder="admin@club.com" />
+            <Input placeholder="captain@example.com" />
           </Form.Item>
           <Form.Item
             label="Password"
@@ -85,8 +105,8 @@ export function LoginPage() {
           >
             <Input.Password placeholder="Enter your password" />
           </Form.Item>
-          <Button block htmlType="submit" size="large" type="primary">
-            Continue
+          <Button block htmlType="submit" loading={loginMutation.isPending} size="large" type="primary">
+            {loginMutation.isPending ? 'Signing in...' : 'Continue'}
           </Button>
         </Form>
       </Space>

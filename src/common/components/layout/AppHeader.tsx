@@ -1,14 +1,21 @@
 import { LogoutOutlined } from '@ant-design/icons'
 import { Avatar, Button, Layout, Space, Typography } from 'antd'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { findNavigationRoute, MENU_GROUP_LABELS } from '@/app/config/navigation'
 import { useAuthStore } from '@/app/store'
+import { APP_NAME } from '@/common/constants/app'
 
 export function AppHeader() {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const signOut = useAuthStore((state) => state.signOut)
   const displayName = user?.fullName ?? 'Guest User'
   const initial = displayName.charAt(0).toUpperCase()
+  const currentRoute = findNavigationRoute(location.pathname)
+  const currentGroup = currentRoute ? MENU_GROUP_LABELS[currentRoute.menuGroup] : 'Workspace'
+  const headerTitle = currentRoute?.title ?? APP_NAME
+  const headerSubtitle = currentRoute?.subtitle ?? 'Backend mapped frontend scaffold.'
 
   const handleSignOut = () => {
     signOut()
@@ -31,12 +38,13 @@ export function AppHeader() {
         paddingBlock: 16,
         paddingInline: 24,
       }}
-    >
+      >
       <div className="header-banner">
         <div className="brand-mark" />
         <div className="header-banner-copy">
-          <span className="brand-chip">Operations Dashboard</span>
-          <h1>Season Control Center</h1>
+          <span className="brand-chip">{currentGroup}</span>
+          <h1>{headerTitle}</h1>
+          <Typography.Text style={{ color: '#6a7a8d' }}>{headerSubtitle}</Typography.Text>
         </div>
       </div>
 

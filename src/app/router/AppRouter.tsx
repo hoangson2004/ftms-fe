@@ -1,18 +1,27 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { featureModules } from '@/app/config/navigation'
 import { ProtectedRoute } from '@/app/router/ProtectedRoute'
-import { RoleRoute } from '@/app/router/RoleRoute'
 import { AuthLayout } from '@/common/components/layout/AuthLayout'
 import { MainLayout } from '@/common/components/layout/MainLayout'
-import { AvailabilityPage } from '@/features/availability/pages/AvailabilityPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { getResourceConfigByKey } from '@/features/admin/config/resourceConfigs'
+import { CrudResourcePage } from '@/features/admin/pages/CrudResourcePage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
-import { FinancePage } from '@/features/finance/pages/FinancePage'
-import { MatchmakingPage } from '@/features/matchmaking/pages/MatchmakingPage'
-import { MatchesPage } from '@/features/matches/pages/MatchesPage'
-import { MembersPage } from '@/features/members/pages/MembersPage'
-import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
-import { TeamsPage } from '@/features/teams/pages/TeamsPage'
-import { UsersPage } from '@/features/users/pages/UsersPage'
+
+const resourceRoutes = featureModules
+  .map((module) => {
+    const resourceConfig = getResourceConfigByKey(module.key)
+
+    return resourceConfig
+      ? {
+          path: module.path.slice(1),
+          element: <CrudResourcePage config={resourceConfig} />,
+        }
+      : {
+          path: module.path.slice(1),
+          element: <Navigate replace to="/" />,
+        }
+  })
 
 const router = createBrowserRouter([
   {
@@ -35,43 +44,7 @@ const router = createBrowserRouter([
             index: true,
             element: <DashboardPage />,
           },
-          {
-            path: 'teams',
-            element: <TeamsPage />,
-          },
-          {
-            path: 'members',
-            element: <MembersPage />,
-          },
-          {
-            path: 'availability',
-            element: <AvailabilityPage />,
-          },
-          {
-            path: 'matches',
-            element: <MatchesPage />,
-          },
-          {
-            path: 'finance',
-            element: <FinancePage />,
-          },
-          {
-            path: 'notifications',
-            element: <NotificationsPage />,
-          },
-          {
-            path: 'matchmaking',
-            element: <MatchmakingPage />,
-          },
-          {
-            element: <RoleRoute allowedRoles={['admin']} />,
-            children: [
-              {
-                path: 'users',
-                element: <UsersPage />,
-              },
-            ],
-          },
+          ...resourceRoutes,
         ],
       },
     ],

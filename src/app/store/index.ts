@@ -1,60 +1,82 @@
 import { create } from 'zustand'
+import { AUTH_STORAGE_KEY } from '@/common/constants/storage'
 import { storage } from '@/common/lib/storage'
-import type { UserRole } from '@/common/types/auth'
-
-type CurrentUser = {
-  id: string
-  fullName: string
-  role: UserRole
-}
+import type { CurrentUser, PersistedAuthState } from '@/common/types/auth'
 
 type AuthState = {
   isAuthenticated: boolean
+  accessToken: string | null
+  refreshToken: string | null
   user: CurrentUser | null
-  signIn: (payload?: Partial<CurrentUser>) => void
+  signIn: (payload: PersistedAuthState) => void
+  updateUser: (user: CurrentUser) => void
   signOut: () => void
 }
 
-const AUTH_STORAGE_KEY = 'football-management-auth'
-
-const initialUser: CurrentUser = {
-  id: 'seed-admin',
-  fullName: 'Club Admin',
-  role: 'admin',
-}
-
 function getInitialState() {
-  const persisted = storage.get<boolean>(AUTH_STORAGE_KEY)
+  const persisted = storage.get<PersistedAuthState>(AUTH_STORAGE_KEY)
 
-  if (persisted) {
+  if (persisted?.accessToken) {
     return {
       isAuthenticated: true,
-      user: initialUser,
+      accessToken: persisted.accessToken,
+      refreshToken: persisted.refreshToken,
+      user: persisted.user,
     }
   }
 
   return {
     isAuthenticated: false,
+    accessToken: null,
+    refreshToken: null,
     user: null,
   }
+}
+
+function persistAuthState(payload: PersistedAuthState | null) {
+  if (!payload?.accessToken) {
+    storage.remove(AUTH_STORAGE_KEY)
+
+    return
+  }
+
+  storage.set(AUTH_STORAGE_KEY, payload)
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   ...getInitialState(),
   signIn: (payload) => {
-    storage.set(AUTH_STORAGE_KEY, true)
+    persistAuthState(payload)
     set({
       isAuthenticated: true,
-      user: {
-        ...initialUser,
-        ...payload,
-      },
+      accessToken: payload.accessToken,
+      refreshToken: payload.refreshToken,
+      user: payload.user,
     })
   },
+  updateUser: (user) => {
+    const currentAuth = storage.get<PersistedAuthState>(AUTH_STORAGE_KEY)
+
+    persistAuthState({
+      accessToken: currentAuth?.accessToken ?? '',
+      refreshToken: currentAuth?.refreshToken ?? '',
+      tokenType: currentAuth?.tokenType,
+      expiresInMs: currentAuth?.expiresInMs,
+      refreshExpiresInMs: currentAuth?.refreshExpiresInMs,
+      user,
+    })
+
+    set((state) => ({
+      ...state,
+      user,
+    }))
+  },
   signOut: () => {
-    storage.remove(AUTH_STORAGE_KEY)
+    persistAuthState(null)
     set({
       isAuthenticated: false,
+      accessToken: null,
+      refreshToken: null,
       user: null,
     })
   },

@@ -1,6 +1,6 @@
-export const APP_NAME = 'Football Management FE'
+export const APP_NAME = 'FTMS Admin Console'
 
 export const DEMO_CREDENTIALS = {
-  email: 'admin@club.com',
-  password: 'admin123',
+  email: 'captain@example.com',
+  password: '123456',
 }
