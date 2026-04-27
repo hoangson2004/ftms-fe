@@ -1,14 +1,18 @@
 import type { ElementType } from 'react'
 import {
   AppstoreOutlined,
+  BankOutlined,
+  CreditCardOutlined,
   DashboardOutlined,
+  DollarCircleOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  WalletOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
-export type MenuGroupKey = 'overview' | 'organization' | 'authorization'
+export type MenuGroupKey = 'overview' | 'organization' | 'authorization' | 'finance'
 
 export type ApiEndpoint = {
   key: string
@@ -43,6 +47,7 @@ export const MENU_GROUP_LABELS: Record<MenuGroupKey, string> = {
   overview: 'Overview',
   organization: 'Organization',
   authorization: 'Authorization',
+  finance: 'Finance',
 }
 
 export const dashboardRoute: DashboardRoute = {
@@ -100,6 +105,174 @@ export const featureModules: FeatureModule[] = [
     ],
   },
   {
+    key: 'fund-categories',
+    path: '/fund-categories',
+    label: 'Fund Categories',
+    title: 'Fund Categories',
+    subtitle: 'CRUD scaffold for fund categories.',
+    description: 'Manage category codes used by debts, contributions, and team transactions.',
+    menuGroup: 'finance',
+    icon: WalletOutlined,
+    apiCollectionName: 'Fund Categories',
+    endpoints: [
+      {
+        key: 'fund-categories-create',
+        name: 'Create Fund Category',
+        method: 'POST',
+        path: '/api/fund-categories',
+      },
+      {
+        key: 'fund-categories-search',
+        name: 'Search Fund Categories',
+        method: 'GET',
+        path: '/api/fund-categories',
+      },
+      {
+        key: 'fund-categories-update',
+        name: 'Update Fund Category',
+        method: 'PUT',
+        path: '/api/fund-categories/:fundCategoryId',
+      },
+      {
+        key: 'fund-categories-delete',
+        name: 'Delete Fund Category',
+        method: 'DELETE',
+        path: '/api/fund-categories/:fundCategoryId',
+      },
+    ],
+    plannedSections: [
+      'Category table with code, table name, transaction type, and active state.',
+      'Create/edit form for category metadata aligned with backend enums.',
+      'Delete flow for retired finance categories.',
+    ],
+  },
+  {
+    key: 'fund-member-debts',
+    path: '/fund-member-debts',
+    label: 'Member Debts',
+    title: 'Fund Member Debts',
+    subtitle: 'CRUD scaffold for member debt tracking.',
+    description: 'Track unpaid and paid member obligations with due dates and notes.',
+    menuGroup: 'finance',
+    icon: CreditCardOutlined,
+    apiCollectionName: 'Fund Member Debts',
+    endpoints: [
+      {
+        key: 'fund-member-debts-create',
+        name: 'Create Fund Member Debt',
+        method: 'POST',
+        path: '/api/fund-member-debts',
+      },
+      {
+        key: 'fund-member-debts-search',
+        name: 'Search Fund Member Debts',
+        method: 'GET',
+        path: '/api/fund-member-debts',
+      },
+      {
+        key: 'fund-member-debts-update',
+        name: 'Update Fund Member Debt',
+        method: 'PUT',
+        path: '/api/fund-member-debts/:fundMemberDebtId',
+      },
+      {
+        key: 'fund-member-debts-delete',
+        name: 'Delete Fund Member Debt',
+        method: 'DELETE',
+        path: '/api/fund-member-debts/:fundMemberDebtId',
+      },
+    ],
+    plannedSections: [
+      'Debt table with team member, category, amount, status, and due date.',
+      'Create/edit flow for member debt entries.',
+      'Delete action for invalid or retired debt rows.',
+    ],
+  },
+  {
+    key: 'fund-member-contributions',
+    path: '/fund-member-contributions',
+    label: 'Member Contributions',
+    title: 'Fund Member Contributions',
+    subtitle: 'CRUD scaffold for member contributions.',
+    description: 'Track ad-hoc or planned contributions paid by team members.',
+    menuGroup: 'finance',
+    icon: DollarCircleOutlined,
+    apiCollectionName: 'Fund Member Contributions',
+    endpoints: [
+      {
+        key: 'fund-member-contributions-create',
+        name: 'Create Fund Member Contribution',
+        method: 'POST',
+        path: '/api/fund-member-contributions',
+      },
+      {
+        key: 'fund-member-contributions-search',
+        name: 'Search Fund Member Contributions',
+        method: 'GET',
+        path: '/api/fund-member-contributions',
+      },
+      {
+        key: 'fund-member-contributions-update',
+        name: 'Update Fund Member Contribution',
+        method: 'PUT',
+        path: '/api/fund-member-contributions/:fundMemberContributionId',
+      },
+      {
+        key: 'fund-member-contributions-delete',
+        name: 'Delete Fund Member Contribution',
+        method: 'DELETE',
+        path: '/api/fund-member-contributions/:fundMemberContributionId',
+      },
+    ],
+    plannedSections: [
+      'Contribution table with member, category, amount, contribution date, and notes.',
+      'Create/edit flow bound to the contribution API payload.',
+      'Delete action for cleanup and corrections.',
+    ],
+  },
+  {
+    key: 'fund-team-transactions',
+    path: '/fund-team-transactions',
+    label: 'Team Transactions',
+    title: 'Fund Team Transactions',
+    subtitle: 'CRUD scaffold for team-level fund transactions.',
+    description: 'Track incoming and outgoing team fund transactions by category code.',
+    menuGroup: 'finance',
+    icon: BankOutlined,
+    apiCollectionName: 'Fund Team Transactions',
+    endpoints: [
+      {
+        key: 'fund-team-transactions-create',
+        name: 'Create Fund Team Transaction',
+        method: 'POST',
+        path: '/api/fund-team-transactions',
+      },
+      {
+        key: 'fund-team-transactions-search',
+        name: 'Search Fund Team Transactions',
+        method: 'GET',
+        path: '/api/fund-team-transactions',
+      },
+      {
+        key: 'fund-team-transactions-update',
+        name: 'Update Fund Team Transaction',
+        method: 'PUT',
+        path: '/api/fund-team-transactions/:fundTeamTransactionId',
+      },
+      {
+        key: 'fund-team-transactions-delete',
+        name: 'Delete Fund Team Transaction',
+        method: 'DELETE',
+        path: '/api/fund-team-transactions/:fundTeamTransactionId',
+      },
+    ],
+    plannedSections: [
+      'Transaction table with category, transaction type, amount, timestamp, and note.',
+      'Create/edit flow for team income and expense entries.',
+      'Delete action for correction workflows.',
+    ],
+  },
+  {
     key: 'roles',
     path: '/roles',
     label: 'Roles',
@@ -146,7 +319,7 @@ export const featureModules: FeatureModule[] = [
     path: '/permission-categories',
     label: 'Permission Categories',
     title: 'Permission Categories',
-    subtitle: 'Read scaffold for `06. Permission Categories`.',
+    subtitle: 'Permission categories management.',
     description: 'Lookup catalog for permission category codes, names, and sort order.',
     menuGroup: 'authorization',
     icon: AppstoreOutlined,

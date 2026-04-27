@@ -14,9 +14,11 @@ export type SelectOption = {
 export type SearchField = {
   name: string
   label: string
-  type: 'text' | 'select' | 'number'
+  type: 'text' | 'select' | 'number' | 'remote-select'
   placeholder?: string
+  multiple?: boolean
   options?: SelectOption[]
+  remote?: RemoteSelectSource
   span?: number
 }
 
@@ -57,6 +59,8 @@ export type FormField = {
   hiddenOnEdit?: boolean
   emptyValue?: unknown
   getInitialValue?: (record: ResourceRecord) => unknown
+  disabled?: boolean
+  disabledWhen?: (values: AnyRecord) => boolean
 }
 
 export type ResourceConfig = {
@@ -65,6 +69,7 @@ export type ResourceConfig = {
   title: string
   subtitle: string
   singularLabel: string
+  batchCreateLabel?: string
   basePath: string
   queryKey: string
   searchFields: SearchField[]

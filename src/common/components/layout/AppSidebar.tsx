@@ -40,7 +40,6 @@ export function AppSidebar() {
       <div className="sidebar-brand">
         <div className="brand-mark" />
         <h1>FTMS Console</h1>
-        <p>Backend-aligned project scaffold</p>
       </div>
 
       <Menu

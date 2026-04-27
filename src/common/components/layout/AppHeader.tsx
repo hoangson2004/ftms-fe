@@ -15,7 +15,6 @@ export function AppHeader() {
   const currentRoute = findNavigationRoute(location.pathname)
   const currentGroup = currentRoute ? MENU_GROUP_LABELS[currentRoute.menuGroup] : 'Workspace'
   const headerTitle = currentRoute?.title ?? APP_NAME
-  const headerSubtitle = currentRoute?.subtitle ?? 'Backend mapped frontend scaffold.'
 
   const handleSignOut = () => {
     signOut()
@@ -44,7 +43,6 @@ export function AppHeader() {
         <div className="header-banner-copy">
           <span className="brand-chip">{currentGroup}</span>
           <h1>{headerTitle}</h1>
-          <Typography.Text style={{ color: '#6a7a8d' }}>{headerSubtitle}</Typography.Text>
         </div>
       </div>
 

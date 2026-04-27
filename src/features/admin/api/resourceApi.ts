@@ -17,7 +17,7 @@ export async function searchResource(
 export async function createResource(config: ResourceConfig, payload: AnyRecord) {
   const response = await axios.post(config.basePath, payload)
 
-  return unwrapApiData<ResourceRecord>(response.data)
+  return unwrapApiData<ResourceRecord | ResourceRecord[]>(response.data)
 }
 
 export async function updateResource(

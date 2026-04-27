@@ -9,7 +9,6 @@ type PageContainerProps = PropsWithChildren<{
 
 export function PageContainer({
   title,
-  subtitle,
   extra,
   children,
 }: PageContainerProps) {
@@ -28,9 +27,6 @@ export function PageContainer({
           <Typography.Title level={2} style={{ margin: 0 }}>
             {title}
           </Typography.Title>
-          {subtitle ? (
-            <Typography.Text type="secondary">{subtitle}</Typography.Text>
-          ) : null}
         </Space>
         {extra}
       </div>

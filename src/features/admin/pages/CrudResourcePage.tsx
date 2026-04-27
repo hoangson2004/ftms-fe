@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import {
   App,
@@ -14,10 +14,17 @@ import {
   Space,
   Switch,
   Tooltip,
-  Typography,
 } from 'antd'
-import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  DeleteOutlined,
+  DownOutlined,
+  EditOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  UpOutlined,
+} from '@ant-design/icons'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { ErrorState } from '@/common/components/feedback/ErrorState'
 import { Loading } from '@/common/components/feedback/Loading'
 import { PageContainer } from '@/common/components/layout/PageContainer'
@@ -25,7 +32,7 @@ import { AppCard } from '@/common/components/ui/AppCard'
 import { AppModal } from '@/common/components/ui/AppModal'
 import { AppTable } from '@/common/components/ui/AppTable'
 import { getErrorMessage } from '@/common/lib/api'
-import type { AnyRecord } from '@/common/types/api'
+import type { ApiListResult, AnyRecord } from '@/common/types/api'
 import {
   createResource,
   deleteResource,
@@ -113,6 +120,10 @@ function buildPayload(fields: FormField[], values: AnyRecord) {
   const payload: AnyRecord = {}
 
   for (const field of fields) {
+    if (field.disabledWhen?.(values)) {
+      continue
+    }
+
     const rawValue = values[field.name]
 
     if ((rawValue === '' || rawValue === undefined) && field.emptyValue === undefined) {
@@ -153,18 +164,24 @@ function buildInitialValues(config: ResourceConfig, record: ResourceRecord | nul
   return values
 }
 
+function isFieldDisabled(field: FormField, values: AnyRecord) {
+  return field.disabledWhen?.(values) ?? false
+}
+
 function RemoteSelectField({
   source,
   multiple,
   placeholder,
   value,
   onChange,
+  disabled,
 }: {
   source: RemoteSelectSource
   multiple?: boolean
   placeholder?: string
   value?: unknown
   onChange?: (nextValue: unknown) => void
+  disabled?: boolean
 }) {
   const optionsQuery = useQuery({
     queryKey: ['remote-options', source.queryKey, source.params],
@@ -189,6 +206,7 @@ function RemoteSelectField({
       }
       onChange={onChange}
       showSearch
+      disabled={disabled}
       value={value as string | number | Array<string | number> | undefined}
     />
   )
@@ -197,6 +215,16 @@ function RemoteSelectField({
 function renderSearchField(field: SearchField) {
   if (field.type === 'number') {
     return <InputNumber min={0} placeholder={field.placeholder ?? `Search ${field.label.toLowerCase()}`} style={{ width: '100%' }} />
+  }
+
+  if (field.type === 'remote-select' && field.remote) {
+    return (
+      <RemoteSelectField
+        multiple={field.multiple}
+        placeholder={field.placeholder ?? `Select ${field.label.toLowerCase()}`}
+        source={field.remote}
+      />
+    )
   }
 
   if (field.type === 'select') {
@@ -214,20 +242,27 @@ function renderSearchField(field: SearchField) {
 
 function renderFormField(field: FormField) {
   if (field.type === 'textarea') {
-    return <Input.TextArea placeholder={field.placeholder} rows={4} />
+    return <Input.TextArea disabled={field.disabled} placeholder={field.placeholder} rows={4} />
   }
 
   if (field.type === 'password') {
-    return <Input.Password placeholder={field.placeholder} />
+    return <Input.Password disabled={field.disabled} placeholder={field.placeholder} />
   }
 
   if (field.type === 'email' || field.type === 'tel' || field.type === 'text') {
-    return <Input placeholder={field.placeholder} type={field.type === 'text' ? 'text' : field.type} />
+    return (
+      <Input
+        disabled={field.disabled}
+        placeholder={field.placeholder}
+        type={field.type === 'text' ? 'text' : field.type}
+      />
+    )
   }
 
   if (field.type === 'number') {
     return (
       <InputNumber
+        disabled={field.disabled}
         min={field.min}
         placeholder={field.placeholder}
         precision={field.precision}
@@ -240,6 +275,7 @@ function renderFormField(field: FormField) {
     return (
       <Select
         allowClear={!field.multiple}
+        disabled={field.disabled}
         mode={field.multiple ? 'multiple' : undefined}
         options={field.options}
         placeholder={field.placeholder}
@@ -248,14 +284,14 @@ function renderFormField(field: FormField) {
   }
 
   if (field.type === 'switch') {
-    return <Switch />
+    return <Switch disabled={field.disabled} />
   }
 
   if (field.type === 'datetime') {
-    return <DatePicker showTime style={{ width: '100%' }} />
+    return <DatePicker disabled={field.disabled} showTime style={{ width: '100%' }} />
   }
 
-  return <Input placeholder={field.placeholder} />
+  return <Input disabled={field.disabled} placeholder={field.placeholder} />
 }
 
 function isIdColumn(column: { key?: React.Key; dataIndex?: unknown }) {
@@ -271,7 +307,6 @@ function isIdColumn(column: { key?: React.Key; dataIndex?: unknown }) {
 }
 
 export function CrudResourcePage({ config }: CrudResourcePageProps) {
-  const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
   const [searchForm] = Form.useForm()
   const [editorForm] = Form.useForm()
@@ -280,24 +315,65 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
     offset: 0,
     limit: config.pageSize ?? 20,
   })
+  const [listData, setListData] = useState<ApiListResult<ResourceRecord> | null>(null)
+  const [listError, setListError] = useState<unknown>(null)
+  const [isListLoading, setIsListLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false)
   const [editorMode, setEditorMode] = useState<EditorMode>('create')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<ResourceRecord | null>(null)
+  const editorValues = Form.useWatch([], editorForm) ?? {}
 
-  const listQuery = useQuery({
-    queryKey: [config.queryKey, 'list', filters, pagination],
-    queryFn: () =>
-      searchResource(config, {
-        ...filters,
-        ...pagination,
-      }),
-  })
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadList = async () => {
+      setIsListLoading(true)
+      setListError(null)
+
+      try {
+        const response = await searchResource(config, {
+          ...filters,
+          ...pagination,
+        })
+
+        if (isCancelled) {
+          return
+        }
+
+        setListData(response)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        setListError(error)
+      } finally {
+        if (!isCancelled) {
+          setIsListLoading(false)
+        }
+      }
+    }
+
+    void loadList()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [config, filters, pagination, reloadKey])
 
   const createMutation = useMutation({
     mutationFn: (payload: AnyRecord) => createResource(config, payload),
-    onSuccess: () => {
-      message.success(`Created ${config.singularLabel} successfully.`)
-      queryClient.invalidateQueries({ queryKey: [config.queryKey] })
+    onSuccess: (created) => {
+      if (Array.isArray(created)) {
+        const batchLabel = config.batchCreateLabel ?? `${config.singularLabel}s`
+        message.success(`Created ${created.length} ${batchLabel} successfully.`)
+      } else {
+        message.success(`Created ${config.singularLabel} successfully.`)
+      }
+
+      setReloadKey((current) => current + 1)
       setIsModalOpen(false)
       editorForm.resetFields()
     },
@@ -311,7 +387,7 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
       updateResource(config, id, payload),
     onSuccess: () => {
       message.success(`Updated ${config.singularLabel} successfully.`)
-      queryClient.invalidateQueries({ queryKey: [config.queryKey] })
+      setReloadKey((current) => current + 1)
       setIsModalOpen(false)
       editorForm.resetFields()
     },
@@ -324,7 +400,7 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
     mutationFn: (id: string | number) => deleteResource(config, id),
     onSuccess: () => {
       message.success(`Deleted ${config.singularLabel} successfully.`)
-      queryClient.invalidateQueries({ queryKey: [config.queryKey] })
+      setReloadKey((current) => current + 1)
     },
     onError: (error) => {
       message.error(getErrorMessage(error))
@@ -455,7 +531,7 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
     <PageContainer
       extra={
         <Space wrap>
-          <Button icon={<ReloadOutlined />} onClick={() => listQuery.refetch()}>
+          <Button icon={<ReloadOutlined />} onClick={() => setReloadKey((current) => current + 1)}>
             Refresh
           </Button>
           {canCreate ? (
@@ -470,49 +546,56 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
     >
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <AppCard title="Filters">
-            <Form form={searchForm} layout="vertical" onFinish={handleSearch}>
-              <Row gutter={[16, 8]}>
-                {config.searchFields.map((field) => (
-                  <Col key={field.name} lg={field.span ?? 6} md={12} xs={24}>
-                    <Form.Item label={field.label} name={field.name}>
-                      {renderSearchField(field)}
-                    </Form.Item>
+          <AppCard
+            extra={
+              <Button
+                icon={isFiltersCollapsed ? <DownOutlined /> : <UpOutlined />}
+                onClick={() => setIsFiltersCollapsed((current) => !current)}
+                size="small"
+                type="text"
+              >
+                {isFiltersCollapsed ? 'Expand' : 'Collapse'}
+              </Button>
+            }
+            title="Filters"
+          >
+            {!isFiltersCollapsed ? (
+              <Form form={searchForm} layout="vertical" onFinish={handleSearch}>
+                <Row gutter={[16, 8]}>
+                  {config.searchFields.map((field) => (
+                    <Col key={field.name} lg={field.span ?? 6} md={12} xs={24}>
+                      <Form.Item label={field.label} name={field.name}>
+                        {renderSearchField(field)}
+                      </Form.Item>
+                    </Col>
+                  ))}
+                  <Col span={24}>
+                    <Flex gap={12} justify="flex-end" wrap="wrap">
+                      <Button onClick={handleResetFilters}>Reset</Button>
+                      <Button htmlType="submit" icon={<SearchOutlined />} type="primary">
+                        Search
+                      </Button>
+                    </Flex>
                   </Col>
-                ))}
-                <Col span={24}>
-                  <Flex gap={12} justify="flex-end" wrap="wrap">
-                    <Button onClick={handleResetFilters}>Reset</Button>
-                    <Button htmlType="submit" icon={<SearchOutlined />} type="primary">
-                      Search
-                    </Button>
-                  </Flex>
-                </Col>
-              </Row>
-            </Form>
+                </Row>
+              </Form>
+            ) : null}
           </AppCard>
         </Col>
-        {config.note ? (
-          <Col span={24}>
-            <AppCard title="Note">
-              <Typography.Paragraph style={{ marginBottom: 0 }}>{config.note}</Typography.Paragraph>
-            </AppCard>
-          </Col>
-        ) : null}
         <Col span={24}>
           <AppCard title={`${config.title} table`}>
-            {listQuery.isPending ? <Loading /> : null}
-            {listQuery.isError ? (
-              <ErrorState subTitle={getErrorMessage(listQuery.error)} title={`Cannot load ${config.title.toLowerCase()}`} />
+            {isListLoading ? <Loading /> : null}
+            {listError ? (
+              <ErrorState subTitle={getErrorMessage(listError)} title={`Cannot load ${config.title.toLowerCase()}`} />
             ) : null}
-            {listQuery.data ? (
+            {listData ? (
               <AppTable<ResourceRecord>
                 columns={columns}
-                dataSource={listQuery.data.items}
+                dataSource={listData.items}
                 pagination={{
                   current: Math.floor(pagination.offset / pagination.limit) + 1,
                   pageSize: pagination.limit,
-                  total: listQuery.data.total,
+                  total: listData.total,
                   onChange: (page, pageSize) => {
                     setPagination({
                       offset: (page - 1) * pageSize,
@@ -537,53 +620,65 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
       >
         <Form form={editorForm} layout="vertical">
           <Row gutter={[16, 8]}>
-            {visibleFields.map((field) => (
-              <Col key={field.name} lg={field.span ?? 12} xs={24}>
-                <Form.Item
-                  help={field.help}
-                  label={field.label}
-                  name={field.name}
-                  rules={
-                    field.required ||
-                    (editorMode === 'create' && field.requiredOnCreate) ||
-                    (editorMode === 'edit' && field.requiredOnEdit)
-                      ? [
-                          {
-                            required: true,
-                            message: `Please enter ${field.label.toLowerCase()}.`,
-                          },
-                          ...(field.multiple
-                            ? [
-                                {
-                                  validator: async (_rule: unknown, value: unknown) => {
-                                    if (Array.isArray(value) && value.length > 0) {
-                                      return
-                                    }
+            {visibleFields.map((field) => {
+              const disabled = isFieldDisabled(field, editorValues)
+              const isRequired =
+                !disabled &&
+                (field.required ||
+                  (editorMode === 'create' && field.requiredOnCreate) ||
+                  (editorMode === 'edit' && field.requiredOnEdit))
 
-                                    throw new Error(
-                                      `Please select at least one ${field.label.toLowerCase()}.`,
-                                    )
+              return (
+                <Col key={field.name} lg={field.span ?? 12} xs={24}>
+                  <Form.Item
+                    help={field.help}
+                    label={field.label}
+                    name={field.name}
+                    rules={
+                      isRequired
+                        ? [
+                            {
+                              required: true,
+                              message: `Please enter ${field.label.toLowerCase()}.`,
+                            },
+                            ...(field.multiple
+                              ? [
+                                  {
+                                    validator: async (_rule: unknown, value: unknown) => {
+                                      if (Array.isArray(value) && value.length > 0) {
+                                        return
+                                      }
+
+                                      throw new Error(
+                                        `Please select at least one ${field.label.toLowerCase()}.`,
+                                      )
+                                    },
                                   },
-                                },
-                              ]
-                            : []),
-                        ]
-                      : undefined
-                  }
-                  valuePropName={field.type === 'switch' ? 'checked' : 'value'}
-                >
-                  {field.type === 'remote-select' && field.remote ? (
-                    <RemoteSelectField
-                      multiple={field.multiple}
-                      placeholder={field.placeholder}
-                      source={field.remote}
-                    />
-                  ) : (
-                    renderFormField(field)
-                  )}
-                </Form.Item>
-              </Col>
-            ))}
+                                ]
+                              : []),
+                          ]
+                        : undefined
+                    }
+                    valuePropName={field.type === 'switch' ? 'checked' : 'value'}
+                  >
+                    {field.type === 'remote-select' && field.remote ? (
+                      <RemoteSelectField
+                        disabled={disabled}
+                        multiple={field.multiple}
+                        placeholder={field.placeholder}
+                        source={field.remote}
+                      />
+                    ) : (
+                      renderFormField({
+                        ...field,
+                        disabled,
+                        placeholder: disabled ? 'Not applicable for the selected option' : field.placeholder,
+                      })
+                    )}
+                  </Form.Item>
+                </Col>
+              )
+            })}
           </Row>
           <Flex gap={12} justify="flex-end" style={{ marginTop: 8 }} wrap="wrap">
             <Button
