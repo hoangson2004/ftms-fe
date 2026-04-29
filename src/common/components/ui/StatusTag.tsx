@@ -7,6 +7,7 @@ type StatusTagProps = {
 const colorMap: Record<string, string> = {
   active: 'green',
   inactive: 'default',
+  left: 'orange',
   pending: 'gold',
   deleted: 'red',
   revoked: 'volcano',

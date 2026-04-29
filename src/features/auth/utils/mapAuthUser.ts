@@ -30,8 +30,9 @@ export function mapAuthUser(payload: unknown): CurrentUser | null {
   const roles = Array.isArray(payload.roles) ? payload.roles : []
   const firstRole = roles[0]
   const role = firstString([
-    getValueByPath(payload, 'role.code'),
+    payload.roleName,
     getValueByPath(payload, 'role.name'),
+    getValueByPath(payload, 'role.code'),
     payload.role,
     isRecord(firstRole) ? firstRole.code : undefined,
     isRecord(firstRole) ? firstRole.name : undefined,
@@ -41,7 +42,7 @@ export function mapAuthUser(payload: unknown): CurrentUser | null {
 
   return {
     id,
-    fullName: firstString([payload.fullName, payload.name]) ?? 'Unknown user',
+    fullName: firstString([payload.fullName, payload.userName, payload.name]) ?? 'Unknown user',
     email: firstString([payload.email]),
     role: role ?? 'member',
     teamId: firstString([payload.teamId, getValueByPath(payload, 'team.id')]) ?? null,

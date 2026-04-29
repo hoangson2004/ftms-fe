@@ -32,6 +32,11 @@ const debtStatusOptions: SelectOption[] = [
   { label: 'PAID', value: 'PAID' },
 ]
 
+const teamMemberStatusOptions: SelectOption[] = [
+  { label: 'ACTIVE', value: 'ACTIVE' },
+  { label: 'LEFT', value: 'LEFT' },
+]
+
 function getSubtitle(routeKey: string) {
   return featureModules.find((module) => module.key === routeKey)?.subtitle ?? ''
 }
@@ -57,20 +62,16 @@ function renderBoolean(value: unknown) {
 }
 
 function getTeamMemberLabel(record: Record<string, unknown>) {
-  const fullName = getValueByPath(record, 'user.fullName')
-  const email = getValueByPath(record, 'user.email')
+  const userName = getValueByPath(record, 'userName')
+  const fullName = getValueByPath(record, 'fullName')
+  const nestedFullName = getValueByPath(record, 'user.fullName')
+  const name = getValueByPath(record, 'name')
   const userId = getValueByPath(record, 'userId')
 
-  if (typeof fullName === 'string' && fullName.trim()) {
-    if (typeof email === 'string' && email.trim()) {
-      return `${fullName} - ${email}`
+  for (const candidate of [userName, fullName, nestedFullName, name]) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate
     }
-
-    return fullName
-  }
-
-  if (typeof email === 'string' && email.trim()) {
-    return email
   }
 
   if (userId !== undefined && userId !== null) {
@@ -117,7 +118,6 @@ export const resourceConfigs: ResourceConfig[] = [
     basePath: '/api/users',
     queryKey: 'users',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       { name: 'fullName', label: 'Full name', type: 'text' },
       { name: 'email', label: 'Email', type: 'text' },
       { name: 'phone', label: 'Phone', type: 'text' },
@@ -154,6 +154,106 @@ export const resourceConfigs: ResourceConfig[] = [
     }),
   },
   {
+    key: 'team-members',
+    routePath: buildRoutePath('team-members'),
+    title: 'Team Members',
+    subtitle: getSubtitle('team-members'),
+    singularLabel: 'team member',
+    basePath: '/api/team-members',
+    queryKey: 'team-members',
+    allowDelete: false,
+    note: 'User and role names are taken directly from backend response fields `userName` and `roleName`.',
+    searchFields: [
+      {
+        name: 'userId',
+        label: 'User',
+        type: 'remote-select',
+        placeholder: 'Select user',
+        remote: {
+          path: '/api/users',
+          queryKey: 'team-member-user-search-options',
+          label: (record) =>
+            String(record.fullName ?? record.userName ?? record.name ?? record.email ?? record.id),
+          params: {
+            offset: 0,
+            limit: 999,
+          },
+        },
+      },
+      {
+        name: 'roleId',
+        label: 'Role',
+        type: 'remote-select',
+        placeholder: 'Select role',
+        remote: {
+          path: '/api/roles',
+          queryKey: 'team-member-role-search-options',
+          label: (record) => String(record.roleName ?? record.name ?? record.code ?? record.id),
+          params: {
+            offset: 0,
+            limit: 999,
+          },
+        },
+      },
+      { name: 'status', label: 'Status', type: 'select', options: teamMemberStatusOptions },
+    ],
+    formFields: [
+      {
+        name: 'userId',
+        label: 'User',
+        type: 'remote-select',
+        required: true,
+        placeholder: 'Select user',
+        remote: {
+          path: '/api/users',
+          queryKey: 'team-member-user-options',
+          label: (record) =>
+            String(record.fullName ?? record.userName ?? record.name ?? record.email ?? record.id),
+          params: {
+            offset: 0,
+            limit: 999,
+          },
+        },
+      },
+      {
+        name: 'roleId',
+        label: 'Role',
+        type: 'remote-select',
+        required: true,
+        placeholder: 'Select role',
+        remote: {
+          path: '/api/roles',
+          queryKey: 'team-member-role-options',
+          label: (record) => String(record.roleName ?? record.name ?? record.code ?? record.id),
+          params: {
+            offset: 0,
+            limit: 999,
+          },
+        },
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        required: true,
+        options: teamMemberStatusOptions,
+      },
+      { name: 'joinedAt', label: 'Joined at', type: 'datetime', required: true },
+      { name: 'leftAt', label: 'Left at', type: 'datetime', emptyValue: null },
+    ],
+    columns: [
+      { key: 'userName', title: 'User', dataIndex: 'userName' },
+      { key: 'roleName', title: 'Role', dataIndex: 'roleName' },
+      { key: 'status', title: 'Status', dataIndex: 'status', width: 140, render: renderStatus },
+      { key: 'joinedAt', title: 'Joined at', dataIndex: 'joinedAt', width: 180, render: (value) => formatDateTime(value) },
+      { key: 'leftAt', title: 'Left at', dataIndex: 'leftAt', width: 180, render: (value) => formatDateTime(value) },
+    ],
+    getInitialFormValues: () => ({
+      status: 'ACTIVE',
+      leftAt: null,
+    }),
+  },
+  {
     key: 'fund-categories',
     routePath: buildRoutePath('fund-categories'),
     title: 'Fund Categories',
@@ -162,7 +262,6 @@ export const resourceConfigs: ResourceConfig[] = [
     basePath: '/api/fund-categories',
     queryKey: 'fund-categories',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       { name: 'code', label: 'Code', type: 'text' },
       { name: 'name', label: 'Name', type: 'text' },
       { name: 'tableName', label: 'Module', type: 'select', options: fundTableOptions },
@@ -225,7 +324,6 @@ export const resourceConfigs: ResourceConfig[] = [
     queryKey: 'fund-member-debts',
     note: 'Category options are loaded from active fund categories for Member Debts. Team member options are loaded from /api/team-members with limit 999 and can be filtered by typing in the combobox. Create supports batch selection of multiple team members.',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       {
         name: 'teamMemberId',
         label: 'Team member',
@@ -323,7 +421,13 @@ export const resourceConfigs: ResourceConfig[] = [
       { name: 'note', label: 'Note', type: 'textarea' },
     ],
     columns: [
-      { key: 'teamMember', title: 'Team member', width: 240, render: renderTeamMemberCell },
+      {
+        key: 'userName',
+        title: 'User name',
+        dataIndex: 'userName',
+        width: 240,
+        render: (_value, record) => renderTeamMemberCell(undefined, record),
+      },
       { key: 'categoryCode', title: 'Category code', dataIndex: 'categoryCode', width: 180, render: renderCode },
       { key: 'amount', title: 'Amount', dataIndex: 'amount', width: 160, render: renderAmount },
       { key: 'status', title: 'Status', dataIndex: 'status', width: 120, render: renderStatus },
@@ -346,7 +450,6 @@ export const resourceConfigs: ResourceConfig[] = [
     queryKey: 'fund-member-contributions',
     note: 'Category options are loaded from active fund categories for Member Contributions. Team member options are loaded from /api/team-members with limit 999 and can be filtered by typing in the combobox. Create supports batch selection of multiple team members.',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       {
         name: 'teamMemberId',
         label: 'Team member',
@@ -437,7 +540,13 @@ export const resourceConfigs: ResourceConfig[] = [
       { name: 'note', label: 'Note', type: 'textarea' },
     ],
     columns: [
-      { key: 'teamMember', title: 'Team member', width: 240, render: renderTeamMemberCell },
+      {
+        key: 'userName',
+        title: 'User name',
+        dataIndex: 'userName',
+        width: 240,
+        render: (_value, record) => renderTeamMemberCell(undefined, record),
+      },
       { key: 'categoryCode', title: 'Category code', dataIndex: 'categoryCode', width: 180, render: renderCode },
       { key: 'amount', title: 'Amount', dataIndex: 'amount', width: 160, render: renderAmount },
       {
@@ -462,7 +571,6 @@ export const resourceConfigs: ResourceConfig[] = [
     basePath: '/api/fund-team-transactions',
     queryKey: 'fund-team-transactions',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       {
         name: 'categoryCode',
         label: 'Category',
@@ -531,7 +639,6 @@ export const resourceConfigs: ResourceConfig[] = [
     basePath: '/api/roles',
     queryKey: 'roles',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       { name: 'code', label: 'Code', type: 'text' },
       { name: 'name', label: 'Name', type: 'text' },
       { name: 'isDefault', label: 'Default', type: 'select', options: booleanOptions },
@@ -596,7 +703,6 @@ export const resourceConfigs: ResourceConfig[] = [
     allowUpdate: false,
     allowDelete: false,
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       { name: 'code', label: 'Code', type: 'text' },
       { name: 'name', label: 'Name', type: 'text' },
     ],
@@ -617,7 +723,6 @@ export const resourceConfigs: ResourceConfig[] = [
     basePath: '/api/permission-groups',
     queryKey: 'permission-groups',
     searchFields: [
-      { name: 'id', label: 'ID', type: 'text' },
       { name: 'code', label: 'Code', type: 'text' },
       { name: 'name', label: 'Name', type: 'text' },
     ],

@@ -15,7 +15,7 @@ const resourceRoutes = featureModules
     return resourceConfig
       ? {
           path: module.path.slice(1),
-          element: <CrudResourcePage config={resourceConfig} />,
+          element: <CrudResourcePage key={resourceConfig.key} config={resourceConfig} />,
         }
       : {
           path: module.path.slice(1),

@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   WalletOutlined,
   UserOutlined,
+  UsergroupAddOutlined,
 } from '@ant-design/icons'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -102,6 +103,42 @@ export const featureModules: FeatureModule[] = [
       'Filterable data table with pagination and status chips.',
       'Create and update drawer/modal with shared form validation.',
       'Soft-delete action, optimistic refresh, and empty state handling.',
+    ],
+  },
+  {
+    key: 'team-members',
+    path: '/team-members',
+    label: 'Team Members',
+    title: 'Team Members',
+    subtitle: 'CRUD scaffold for team membership management.',
+    description: 'Manage team membership, assigned team role, active state, and join/leave dates.',
+    menuGroup: 'organization',
+    icon: UsergroupAddOutlined,
+    apiCollectionName: 'Team Members',
+    endpoints: [
+      {
+        key: 'team-members-create',
+        name: 'Create Team Member',
+        method: 'POST',
+        path: '/api/team-members',
+      },
+      {
+        key: 'team-members-search',
+        name: 'Search Team Members',
+        method: 'GET',
+        path: '/api/team-members',
+      },
+      {
+        key: 'team-members-update',
+        name: 'Update Team Member',
+        method: 'PUT',
+        path: '/api/team-members/:id',
+      },
+    ],
+    plannedSections: [
+      'Membership table with user name, role name, current status, and lifecycle dates.',
+      'Create/edit flow for assigning a user into the team with a team role.',
+      'Search by user, role, and membership status using backend filters.',
     ],
   },
   {

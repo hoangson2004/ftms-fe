@@ -313,7 +313,7 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
   const [filters, setFilters] = useState<AnyRecord>({})
   const [pagination, setPagination] = useState({
     offset: 0,
-    limit: config.pageSize ?? 20,
+    limit: config.pageSize ?? 10,
   })
   const [listData, setListData] = useState<ApiListResult<ResourceRecord> | null>(null)
   const [listError, setListError] = useState<unknown>(null)
@@ -584,7 +584,7 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
         </Col>
         <Col span={24}>
           <AppCard title={`${config.title} table`}>
-            {isListLoading ? <Loading /> : null}
+            {!listData && isListLoading ? <Loading /> : null}
             {listError ? (
               <ErrorState subTitle={getErrorMessage(listError)} title={`Cannot load ${config.title.toLowerCase()}`} />
             ) : null}
@@ -592,9 +592,12 @@ export function CrudResourcePage({ config }: CrudResourcePageProps) {
               <AppTable<ResourceRecord>
                 columns={columns}
                 dataSource={listData.items}
+                loading={isListLoading}
                 pagination={{
                   current: Math.floor(pagination.offset / pagination.limit) + 1,
                   pageSize: pagination.limit,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 50, 100],
                   total: listData.total,
                   onChange: (page, pageSize) => {
                     setPagination({
