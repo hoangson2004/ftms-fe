@@ -2,18 +2,21 @@ import type { ElementType } from 'react'
 import {
   AppstoreOutlined,
   BankOutlined,
+  CalendarOutlined,
   CreditCardOutlined,
   DashboardOutlined,
   DollarCircleOutlined,
+  SearchOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  TeamOutlined,
   WalletOutlined,
   UserOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
-export type MenuGroupKey = 'overview' | 'organization' | 'authorization' | 'finance'
+export type MenuGroupKey = 'overview' | 'organization' | 'authorization' | 'matches' | 'finance'
 
 export type ApiEndpoint = {
   key: string
@@ -48,6 +51,7 @@ export const MENU_GROUP_LABELS: Record<MenuGroupKey, string> = {
   overview: 'Overview',
   organization: 'Organization',
   authorization: 'Authorization',
+  matches: 'Matches',
   finance: 'Finance',
 }
 
@@ -181,6 +185,150 @@ export const featureModules: FeatureModule[] = [
       'Category table with code, table name, transaction type, and active state.',
       'Create/edit form for category metadata aligned with backend enums.',
       'Delete flow for retired finance categories.',
+    ],
+  },
+  {
+    key: 'match-plans',
+    path: '/match-plans',
+    label: 'Plans',
+    title: 'Match Planning',
+    subtitle: 'Member availability and planning windows for internal and friendly matches.',
+    description: 'Members submit availability windows and coordinators maintain match plans.',
+    menuGroup: 'matches',
+    icon: CalendarOutlined,
+    apiCollectionName: 'Match Planning',
+    endpoints: [
+      {
+        key: 'member-availabilities-create',
+        name: 'Create Member Availability',
+        method: 'POST',
+        path: '/api/member-availabilities',
+      },
+      {
+        key: 'member-availabilities-search',
+        name: 'Search Member Availabilities',
+        method: 'GET',
+        path: '/api/member-availabilities',
+      },
+      {
+        key: 'member-availabilities-update',
+        name: 'Update Member Availability',
+        method: 'PUT',
+        path: '/api/member-availabilities/:id',
+      },
+      {
+        key: 'match-plans-create',
+        name: 'Create Match Plan',
+        method: 'POST',
+        path: '/api/match-plans',
+      },
+      {
+        key: 'match-plans-search',
+        name: 'Search Match Plans',
+        method: 'GET',
+        path: '/api/match-plans',
+      },
+      {
+        key: 'match-plans-update',
+        name: 'Update Match Plan',
+        method: 'PUT',
+        path: '/api/match-plans/:id',
+      },
+    ],
+    plannedSections: [
+      'Availability submission table with team-member name and time ranges.',
+      'Internal and matchmaking plan registry with editable planning windows.',
+      'Separate create/edit flows for availability and plan metadata.',
+    ],
+  },
+  {
+    key: 'internal-match-suggestions',
+    path: '/internal-matches',
+    label: 'Internal Finder',
+    title: 'Internal Match Finder',
+    subtitle: 'Calculate and choose internal match suggestions from member availability.',
+    description: 'Use INTERNAL plans to calculate candidate time slots and turn them into matches.',
+    menuGroup: 'matches',
+    icon: TeamOutlined,
+    apiCollectionName: 'Internal Match Suggestions',
+    endpoints: [
+      {
+        key: 'internal-suggestions-calculate',
+        name: 'Calculate Internal Suggestions',
+        method: 'POST',
+        path: '/api/internal-match-suggestions/plans/:planId/calculate',
+      },
+      {
+        key: 'internal-suggestions-search',
+        name: 'Search Internal Suggestions',
+        method: 'GET',
+        path: '/api/internal-match-suggestions',
+      },
+      {
+        key: 'internal-suggestions-select',
+        name: 'Select Internal Suggestion',
+        method: 'POST',
+        path: '/api/internal-match-suggestions/:id/select',
+      },
+      {
+        key: 'matches-search-internal',
+        name: 'Search Matches',
+        method: 'GET',
+        path: '/api/matches',
+      },
+    ],
+    plannedSections: [
+      'Internal plan selection and calculation trigger.',
+      'Suggested time slots with availability counts and member breakdown.',
+      'Scheduled internal matches created from selected suggestions.',
+    ],
+  },
+  {
+    key: 'matchmaking-suggestions',
+    path: '/friendly-matches',
+    label: 'Friendly Finder',
+    title: 'Friendly Match Finder',
+    subtitle: 'Calculate, accept, or reject opponent suggestions for friendly matches.',
+    description: 'Use MATCHMAKING plans to compare teams and create friendly match schedules.',
+    menuGroup: 'matches',
+    icon: SearchOutlined,
+    apiCollectionName: 'Matchmaking Suggestions',
+    endpoints: [
+      {
+        key: 'matchmaking-suggestions-calculate',
+        name: 'Calculate Matchmaking Suggestions',
+        method: 'POST',
+        path: '/api/matchmaking-suggestions/plans/:planId/calculate',
+      },
+      {
+        key: 'matchmaking-suggestions-search',
+        name: 'Search Matchmaking Suggestions',
+        method: 'GET',
+        path: '/api/matchmaking-suggestions',
+      },
+      {
+        key: 'matchmaking-suggestions-accept',
+        name: 'Accept Matchmaking Suggestion',
+        method: 'POST',
+        path: '/api/matchmaking-suggestions/:id/accept',
+      },
+      {
+        key: 'matchmaking-suggestions-reject',
+        name: 'Reject Matchmaking Suggestion',
+        method: 'POST',
+        path: '/api/matchmaking-suggestions/:id/reject',
+      },
+      {
+        key: 'matches-search-friendly',
+        name: 'Search Matches',
+        method: 'GET',
+        path: '/api/matches',
+      },
+    ],
+    plannedSections: [
+      'Matchmaking plan selection and calculation trigger.',
+      'Friendly-match suggestions with both team names, score, and member breakdown.',
+      'Accepted friendly matches tracked from the match registry.',
     ],
   },
   {

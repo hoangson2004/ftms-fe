@@ -96,7 +96,7 @@ export function LoginPage() {
             name="email"
             rules={[{ required: true, message: 'Nhập email demo.' }]}
           >
-            <Input placeholder="vinh.pham@fcsaokhuya.vn" />
+            <Input placeholder="quan.nguyen@fcsaokhuya.vn" />
           </Form.Item>
           <Form.Item
             label="Password"

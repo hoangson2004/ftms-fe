@@ -4,8 +4,18 @@ import { storage } from '@/common/lib/storage'
 import type { PersistedAuthState } from '@/common/types/auth'
 import type { LoginResult } from '@/features/auth/api/authApi'
 
+function getApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL
+
+  if (typeof configuredUrl === 'string' && configuredUrl.trim()) {
+    return configuredUrl
+  }
+
+  return import.meta.env.DEV ? '' : 'http://localhost:8080'
+}
+
 export const axios = Axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080',
+  baseURL: getApiBaseUrl(),
   timeout: 10_000,
 })
 
@@ -30,12 +40,9 @@ function persistAuthState(payload: PersistedAuthState | null) {
 }
 
 async function runRefreshTokenRequest(refreshToken: string) {
-  const response = await Axios.post(
-    `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/auth/refresh`,
-    {
-      refreshToken,
-    },
-  )
+  const response = await Axios.post(`${getApiBaseUrl()}/api/auth/refresh`, {
+    refreshToken,
+  })
 
   const body = response.data?.data ?? response.data
 
